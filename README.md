@@ -20,3 +20,4 @@ Right Click a Mod Name and you can refresh the Mods listings.
 
 Right Click the preview image and you can delete the screenshot.
 
+More instructions and screenshots...... Coming soon.
