@@ -4,12 +4,14 @@ A Quake 1 launcher in Python, Vibe Coded using Gemini
 Copy or Move the file to your Quake directory
 
 cd <quake directory>
-python3 ./q1-launcher-1.00.py
+python3 ./q1-launcher.py
 
 Configure Engine, Quake Root.
 
 Click a Mod then Map and click launch
 
+While running the app looks for screenshots in the mod or id direcory, once a new screenshot is detcted it will rename the file to the map name and move it to the previews folder.
+Caution, previos screenshots will be removed/renamed then moved to the previews folder. Move any screenshots you may have created to avoid lossing them.
 Press F12 (or whatever key you use for sreenshots) and the script will create a screenshot for that map in a direcory named "previews"
 
 Under "Mods" in the Mods listing you can search in the textbox
