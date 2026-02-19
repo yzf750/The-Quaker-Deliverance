@@ -1,5 +1,10 @@
 # Quake-1-Launcher
 A Quake 1 launcher in Python, Vibe Coded using Gemini
+```bash
+sudo apt update
+sudo apt install python3-tk python3-pil.imagetk
+pip install -r requirements.txt
+```
 
 Copy or Move the file to your Quake directory
 
