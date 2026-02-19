@@ -12,6 +12,23 @@ import random
 import re
 import platform
 
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    import tkinter as tk
+    from tkinter import messagebox
+    import sys
+    
+    root = tk.Tk()
+    root.withdraw()
+    messagebox.showerror("Dependency Missing", 
+        "The 'Pillow' library is required for images.\n\n"
+        "Please install it using:\n"
+        "pip install Pillow\n\n"
+        "On Linux (Ubuntu/Debian):\n"
+        "sudo apt install python3-pil.imagetk")
+    sys.exit(1)
+
 CONFIG_FILE = "quake_launcher_config.json"
 
 class QuakeLauncher:
