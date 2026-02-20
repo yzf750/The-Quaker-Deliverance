@@ -5,6 +5,7 @@ Simple up and running for Debian based distros
 
 ```bash
 git clone https://github.com/yzf750/The-Quaker-Deliverance.git
+cd ./The-Quaker-Deliverance
 sudo apt update
 sudo apt install python3-tk python3-pil.imagetk
 pip install -r requirements.txt
