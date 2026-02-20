@@ -1,4 +1,4 @@
-# Quake-1-Launcher
+# The Quaker Deliverance
 A Quake 1 launcher in Python, Vibe Coded using Gemini
 
 Simple up and running for Debian based distros
