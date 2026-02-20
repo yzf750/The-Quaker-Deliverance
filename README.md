@@ -9,10 +9,10 @@ sudo apt install python3-tk python3-pil.imagetk
 pip install -r requirements.txt
 ```
 
-Copy or Move the file to your Quake directory
+Copy or Move the-quaker-deliverance.py to your Quake directory
 
 cd <Your quake directory>
-python3 ./q1-launcher.py
+python3 ./the-quaker-deliverance.py
 
 Configure Engine, Quake Root.
 
