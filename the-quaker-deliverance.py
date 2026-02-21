@@ -34,8 +34,18 @@ CONFIG_FILE = "quake_launcher_config.json"
 class QuakeLauncher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Quake Launcher")
-        
+        self.root.title("The Quaker Deliverance")
+
+        try:
+            # Look for an icon file named 'icon.png' in the same folder as the script
+            icon_path = os.path.join(os.path.dirname(__file__), "thequaker.png")
+            if os.path.exists(icon_path):
+                img = Image.open(icon_path)
+                photo = ImageTk.PhotoImage(img)
+                self.root.iconphoto(True, photo)
+        except Exception as e:
+            print(f"Could not load icon: {e}")
+
         # 1. Load Data
         self.config = self.load_config()
         self._after_id = None
@@ -418,7 +428,7 @@ class QuakeLauncher:
         except Exception as e:
             print(f"Error reading PAK: {e}")
         return maps
-
+    
     def update_mod_image(self, mod_name, mod_path):
         # Look for mod.png or random preview
         for ext in ['.png', '.jpg']:
