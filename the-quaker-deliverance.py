@@ -31,16 +31,31 @@ except ImportError:
         "sudo apt install python3-pil.imagetk")
     sys.exit(1)
 
+VERSION = "1.1.1"
+
 CONFIG_FILE = "quake_launcher_config.json"
+
+#SCREENSHOT_PATTERNS = ["vkquake*.png", "vkquake*.jpg", "shot00*.jpg", "shot00*.png", "shot00*.tga", "quake*.tga", "quake*.png"]
+
+# list of potential screenshot file names covering vkQuake, Ironwail, Quakespasm, DarkPlaces, and FTEQW
+SCREENSHOT_PATTERNS = [
+    "vkquake*.png", "vkquake*.jpg",      # vkQuake (default)
+    "shot*.png", "shot*.jpg", "shot*.tga", # Ironwail, Quakespasm, vanilla
+    "quake*.png", "quake*.jpg",           # DarkPlaces / FTEQW / Older ports
+    "scr*.png", "scr*.jpg",               # Some specific engine forks
+    "capture*.png"                        # Kex Engine (Enhanced re-release)
+]
+
 
 class QuakeLauncher:
     def __init__(self, root):
         self.root = root
-        self.root.title("The Quaker Deliverance")
+        self.root.title(f"The Quaker Deliverance v{VERSION}")
 
         try:
-            # Look for an icon file named 'icon.png' in the same folder as the script
-            icon_path = os.path.join(os.path.dirname(__file__), "thequaker.png")
+            # Look for an icon file named 'thequaker.png' in the same folder as the script
+            #icon_path = os.path.join(os.path.dirname(__file__), "thequaker.png")
+            icon_path = os.path.join(os.path.dirname(__file__), "blue.png")
             if os.path.exists(icon_path):
                 img = Image.open(icon_path)
                 photo = ImageTk.PhotoImage(img)
@@ -53,11 +68,16 @@ class QuakeLauncher:
         self._after_id = None
         self.active_theme_name = self.config.get("theme_name", "Quake Dark")
        
+        self.save_game = tk.StringVar(value="(None)")
+        self.all_saves = ["(None)"]
+       
+       
+       
         self.themes = {
-            "Quake Dark": {"bg": "#111111", "fg": "#ffffff", "select": "#880000"},
-            "Classic Brown": {"bg": "#332211", "fg": "#ffcc00", "select": "#553311"},
-            "Matrix": {"bg": "#000000", "fg": "#00ff00", "select": "#004400"},
-            "High Contrast": {"bg": "#ffffff", "fg": "#000000", "select": "#0000ff"}
+            "Quake Dark": {"bg": "#111111", "fg": "#ffffff", "select": "#880000", "select_fg": "#ffffff"},
+            "Classic Brown": {"bg": "#332211", "fg": "#ffcc00", "select": "#553311", "select_fg": "#ffffff"},
+            "Matrix": {"bg": "#000000", "fg": "#00ff00", "select": "#004400", "select_fg": "#ffffff"},
+            "High Contrast": {"bg": "#ffffff", "fg": "#000000", "select": "#0000ff", "select_fg": "#ffffff"}
         }
 
         self.current_theme = self.themes.get(self.active_theme_name, self.themes["Quake Dark"])
@@ -86,7 +106,6 @@ class QuakeLauncher:
 
         # 3. Setup UI
         self.setup_ui()
-
         self.root.after(10, self.apply_theme_to_ui)
 
         # 4. Context Menus
@@ -94,12 +113,10 @@ class QuakeLauncher:
         self.context_menu.add_command(label="Delete Screenshot", command=self.delete_current_screenshot)
         self.context_menu.add_separator()
         self.context_menu.add_command(label="Open Previews Folder", command=self.open_previews_folder)
-
         self.mod_context_menu = tk.Menu(self.root, tearoff=0)
         self.mod_context_menu.add_command(label="Force Maps Rescan  (Clear Cache)", command=self.force_rescan_mod)
         self.mod_context_menu.add_command(label="Refresh Mods List", command=self.load_mods)
 
-        # Add this near your other .trace_add calls in __init__
         self.skill_level.trace_add("write", lambda *args: self.on_map_select(None))
 
         # 5. Bindings
@@ -121,7 +138,6 @@ class QuakeLauncher:
         self.root.geometry(self.config.get("window_size", "1200x800"))
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.after(100, self.restore_sashes)
-        
         self.extra_args.trace_add("write", self.save_mod_cli)
 
     def setup_ui(self):
@@ -132,7 +148,6 @@ class QuakeLauncher:
         tk.Label(path_frame, text="Engine:").grid(row=0, column=0, sticky="w")
         tk.Entry(path_frame, textvariable=self.exe_path).grid(row=0, column=1, padx=5, sticky="ew")
         tk.Button(path_frame, text="Browse", command=lambda: self.browse_file("exe")).grid(row=0, column=2)
-
         tk.Label(path_frame, text="Quake Root:").grid(row=1, column=0, sticky="w")
         tk.Entry(path_frame, textvariable=self.base_dir).grid(row=1, column=1, padx=5, sticky="ew")
         tk.Button(path_frame, text="Browse", command=self.browse_base).grid(row=1, column=2)
@@ -169,7 +184,6 @@ class QuakeLauncher:
         self.img_container = tk.Frame(preview_col, bg="black", relief="ridge", bd=1)
         self.img_container.pack(pady=10, fill="both", expand=True)
         self.img_container.bind("<Configure>", self.on_container_resize)
-        
         self.img_label = tk.Label(self.img_container, text="No Preview", bg="black", fg="#00ff00")
         self.img_label.pack(fill="both", expand=True)
 
@@ -179,11 +193,37 @@ class QuakeLauncher:
         ctrl_frame = tk.Frame(preview_col)
         ctrl_frame.pack(fill="x")
 
-        tk.Label(ctrl_frame, text="Skill:").pack(side="left", padx=5)
-        tk.OptionMenu(ctrl_frame, self.skill_level, "0", "1", "2", "3").pack(side="left")
 
-        tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15,5))
-        tk.Entry(ctrl_frame, textvariable=self.extra_args, width=30).pack(side="left", fill="x", expand=True)
+        ctrl_frame = tk.Frame(preview_col)
+        ctrl_frame.pack(fill="x", pady=5)
+
+        # Skill Dropdown
+        tk.Label(ctrl_frame, text="Skill:").pack(side="left", padx=5)
+        self.skill_menu = tk.OptionMenu(ctrl_frame, self.skill_level, "0", "1", "2", "3")
+        self.skill_menu.pack(side="left")
+
+        # Save Game Dropdown
+        tk.Label(ctrl_frame, text="Load Save:").pack(side="left", padx=(15, 5))
+        self.save_menu_var = tk.OptionMenu(ctrl_frame, self.save_game, *self.all_saves)
+        self.save_menu_var.pack(side="left")
+
+        # Extra CLI
+        tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15, 5))
+        tk.Entry(ctrl_frame, textvariable=self.extra_args, width=20).pack(side="left", fill="x", expand=True)
+
+
+
+
+
+
+        #tk.Label(ctrl_frame, text="Skill:").pack(side="left", padx=5)
+        #tk.OptionMenu(ctrl_frame, self.skill_level, "0", "1", "2", "3").pack(side="left")
+
+        #tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15,5))
+        #tk.Entry(ctrl_frame, textvariable=self.extra_args, width=30).pack(side="left", fill="x", expand=True)
+
+
+
 
         self.paned.add(mod_col, width=250)
         self.paned.add(map_col, width=250)
@@ -196,7 +236,6 @@ class QuakeLauncher:
         self.root.configure(bg="white")
         # Recursively update, but only for the main app window
         self.update_widget_colors(self.root, self.current_theme)
-            
 
     def update_widget_colors(self, parent, colors):
         for child in parent.winfo_children():
@@ -214,6 +253,7 @@ class QuakeLauncher:
                         bg=colors["bg"], 
                         fg=colors["fg"], 
                         selectbackground=colors["select"],
+                        selectforeground=colors.get("select_fg", "#ffffff"),
                         font=self.ui_font
                     )
             
@@ -238,7 +278,7 @@ class QuakeLauncher:
             # Cancel any pending "High Quality" render
             if self._after_id: 
                 self.root.after_cancel(self._after_id)
-        
+
             # Perform an instant low-quality resize so it tracks your mouse smoothly
             self.render_image(self.current_img_path, fast=True)
         
@@ -309,11 +349,18 @@ class QuakeLauncher:
         m_name = self.mod_listbox.get(sel[0])
         m_path = os.path.join(self.base_dir.get(), m_name)
         
+        
+        self.archive_existing_screenshots(m_path)
+        
+        
+        self.update_save_list(m_path)
+        
+
+        
+        
         # Clear the image cache so we don't show the old mod's image
         self.cached_image = None
         self.cached_image_path = None
-        
-        
         
         # self.preview_title.config(text=f"Mod: {m_name}")
         self.preview_title.config(text=f"Mod: {m_name}")
@@ -344,35 +391,42 @@ class QuakeLauncher:
 
     def scan_mod_files_worker(self, mod_name, mod_path):
         found_maps = set()
-        if mod_name == "id1": 
-            found_maps.add("(Default)")
+        #if mod_name == "id1": 
+        found_maps.add("(Default)")
         
-        # 1. Search the Mod Root (Loose files)
+        # 1. Search the Mod Root (e.g., /ad/start.bsp)
         try:
             for f in os.listdir(mod_path):
                 if f.lower().endswith('.bsp'):
                     full_path = os.path.join(mod_path, f)
+                    if os.path.getsize(full_path) < 40000: continue
                     with open(full_path, 'rb') as bsp_file:
                         if self.is_valid_bsp(bsp_file):
                             found_maps.add(f.lower().replace('.bsp', ''))
         except Exception: pass
 
-        # 2. Deep Search the /maps subfolder (Recursion)
+        # 2. Search ONLY the /maps folder (No subfolders)
+        # This stops the "unplayable subfolder maps" issue entirely
         maps_subdir = os.path.join(mod_path, "maps")
         if os.path.exists(maps_subdir):
-            for root, dirs, files in os.walk(maps_subdir):
-                for f in files:
+            try:
+                for f in os.listdir(maps_subdir):
                     if f.lower().endswith('.bsp'):
+                        full_path = os.path.join(maps_subdir, f)
+                        
+                        # Size filter
+                        if os.path.getsize(full_path) < 40000: continue
+                        
+                        # Blacklist and Binary validation
                         if not self.is_blacklisted(f, mod_name):
-                            full_path = os.path.join(root, f)
                             try:
                                 with open(full_path, 'rb') as bsp_file:
                                     if self.is_valid_bsp(bsp_file):
-                                        # Only add the filename, not the path
                                         found_maps.add(f.lower().replace('.bsp', ''))
                             except Exception: continue
-        
-        # 3. PAK Search
+            except Exception: pass
+
+        # 3. PAK Search (Already handles internal size/path filtering)
         if os.path.exists(mod_path):
             for f in os.listdir(mod_path):
                 if f.lower().endswith('.pak'):
@@ -384,15 +438,13 @@ class QuakeLauncher:
         self.all_maps = sorted(list(found_maps))
         if not self.all_maps: self.all_maps = ["(Default)"]
         
-        # Cache results
+        # Cache results to Disk
         p_dir = os.path.join(mod_path, "previews")
         os.makedirs(p_dir, exist_ok=True)
         with open(os.path.join(p_dir, "map_cache.json"), 'w') as f:
             json.dump(self.all_maps, f)
         
         self.root.after(0, self.filter_maps)
-
-    # ... [Rest of your helper methods like get_maps_from_pak, launch_game, etc. remain the same] ...
 
     def is_valid_map(self, f, base_offset=0):
         try:
@@ -420,15 +472,21 @@ class QuakeLauncher:
                     full_name = ent[:56].split(b'\0')[0].decode('ascii', errors='ignore').lower()
                     
                     if full_name.endswith('.bsp'):
+                        # Ensure we aren't in a models/ folder inside the PAK
+                        if any(x in full_name for x in ['models/', 'progs/', 'textures/']):
+                            continue
+
                         file_off = struct.unpack('<I', ent[56:60])[0]
-                        # Capture current position to return after validation
+                        file_size = struct.unpack('<I', ent[60:64])[0]
+                        
+                        if file_size < 40000: continue 
+
                         back_pos = f.tell() 
                         if self.is_valid_bsp(f, file_off):
                             file_only = full_name.split('/')[-1].replace('.bsp', '')
                             maps.append(file_only)
                         f.seek(back_pos)
-        except Exception as e:
-            print(f"Error reading PAK: {e}")
+        except Exception as e: print(f"PAK error: {e}")
         return maps
     
     def update_mod_image(self, mod_name, mod_path):
@@ -599,19 +657,16 @@ class QuakeLauncher:
     def launch_game(self):
         exe = self.exe_path.get()
         if not os.path.exists(exe):
+            messagebox.showerror("Error", "Engine executable not found!")
             return
 
         # Get selected mod
         sel_mod = self.mod_listbox.curselection()
         mod = self.mod_listbox.get(sel_mod[0]) if sel_mod else "id1"
 
-        # Get selected map safely
+        # Get selected map
         sel_map = self.map_listbox.curselection()
-        if sel_map:
-            map_n = self.map_listbox.get(sel_map[0])
-        else:
-            # Fallback to last saved map
-            map_n = self.config.get("last_map", "(Default)")
+        map_n = self.map_listbox.get(sel_map[0]) if sel_map else "(Default)"    
 
         # Start screenshot watcher
         self.stop_screenshot_watch.clear()
@@ -621,16 +676,31 @@ class QuakeLauncher:
             daemon=True
         ).start()
 
-        # Build command
-        cmd = [exe, "-game", mod, "+skill", self.skill_level.get()]
+        # 1. Base Command
+        cmd = [exe, "-game", mod]
 
-        if map_n and map_n != "(Default)":
-            cmd.extend(["+map", map_n])
+        # 2. DECISION LOGIC: Save vs Map vs Default
+        selected_save = self.save_game.get()
+        
+        if selected_save != "(None)":
+            # CASE A: Loading a Save. 
+            # We ignore +map and +skill because the save file contains both.
+            save_name = selected_save.lower().replace('.sav', '')
+            cmd.extend(["+load", save_name])
+        
+        elif map_n != "(Default)":
+            # CASE B: Starting a fresh Map.
+            # We need +skill and +map.
+            cmd.extend(["+skill", self.skill_level.get(), "+map", map_n])
+        
+        else:
+            # CASE C: Launching to Main Menu.
+            # We only need +skill for any future games started via the menu.
+            cmd.extend(["+skill", self.skill_level.get()])
 
-        # Add extra CLI parameters
+        # 3. Add extra CLI parameters
         import shlex
         extra = self.mod_extra_args.get(mod, "").strip()
-
         if extra:
             cmd.extend(shlex.split(extra))
 
@@ -639,6 +709,7 @@ class QuakeLauncher:
         # Save state before launching
         self.save_config()
 
+        # Launch
         subprocess.Popen(cmd, cwd=os.path.dirname(exe))
 
 
@@ -682,37 +753,35 @@ class QuakeLauncher:
             f.seek(offset)
             magic = f.read(4)
             
-            # --- Identify Format and Find Entity Lump ---
-            ent_off, ent_size = None, None
-            
-            if magic == b'BSP2':
-                # BSP2 (Modern Large)
+            # --- Support for BSP2 and 2PSB (Something Wicked) ---
+            if magic in [b'BSP2', b'2PSB']:
                 ent_off = struct.unpack('<I', f.read(4))[0]
                 ent_size = struct.unpack('<I', f.read(4))[0]
-            elif magic == b'2PSL':
-                # 2PSL (64-bit Large)
-                f.seek(offset + 8)
-                ent_off = struct.unpack('<Q', f.read(8))[0]
-                ent_size = struct.unpack('<Q', f.read(8))[0]
             else:
-                # Standard BSP (Version 29)
-                version = struct.unpack('<I', magic)[0]
+                f.seek(offset)
+                version = struct.unpack('<I', f.read(4))[0]
+                # Standard Quake is version 29
                 if version != 29: return False
                 ent_off = struct.unpack('<I', f.read(4))[0]
                 ent_size = struct.unpack('<I', f.read(4))[0]
 
-            if not ent_off or ent_size == 0:
-                return False
+            if ent_size == 0: return False
 
-            # --- Jump directly to the Entity List ---
+            # --- Read Entity Data ---
             f.seek(offset + ent_off)
-            # Read the entity data (Up to 512KB for massive maps)
-            entity_chunk = f.read(min(ent_size, 524288)).decode('latin-1', errors='ignore')
+            # We read more data now (up to 1MB) to ensure we find the player start
+            # in massive files like Something Wicked.
+            entity_chunk = f.read(min(ent_size, 1048576)).decode('latin-1', errors='ignore').lower()
             
-            # Must be a whole-word match to avoid partial string hits
-            valid_starts = ['info_player_start', 'info_player_deathmatch', 'info_player_coop']
-            return any(start in entity_chunk for start in valid_starts)
+            # 1. Must have worldspawn
+            if 'worldspawn' not in entity_chunk:
+                return False
             
+            # 2. Relaxed player start check (catches custom mod spawns)
+            if 'info_player' not in entity_chunk:
+                return False
+                
+            return True
         except:
             return False
 
@@ -725,37 +794,28 @@ class QuakeLauncher:
         print(f"Watching for screenshots in: {mod_path}")
         
         while not self.stop_screenshot_watch.is_set():
-            # Common Quake screenshot patterns (png, tga, jpg)
-            #patterns = ["*.png", "*.tga", "*.jpg", "*.bmp"]
-            patterns = ["vkquake*.png", "vkquake*.tga", "vkquake*.jpg", "vkquake*.bmp"]
-            
-            for pattern in patterns:
+            # Use the global variable here too
+            for pattern in SCREENSHOT_PATTERNS:
+                if not os.path.exists(mod_path): continue
                 for f in os.listdir(mod_path):
                     if fnmatch.fnmatch(f.lower(), pattern):
-                        # Get current selected map
                         sel = self.map_listbox.curselection()
                         if not sel: continue
                         map_name = self.map_listbox.get(sel[0]).lower()
                         
+                        # (The rest of your existing logic remains the same)
                         full_old_path = os.path.join(mod_path, f)
                         extension = os.path.splitext(f)[1].lower()
                         new_name = f"{map_name}{extension}"
                         full_new_path = os.path.join(previews_path, new_name)
 
-                        # Wait a moment for the game to finish writing the file
                         time.sleep(1) 
-                        
                         try:
-                            # Move and rename
                             shutil.move(full_old_path, full_new_path)
-                            print(f"Captured screenshot: {new_name}")
-                            
-                            # Update the UI to show the new shot
                             self.root.after(0, lambda p=full_new_path: self.display_new_screenshot(p))
-                        except Exception as e:
-                            print(f"Error moving screenshot: {e}")
+                        except Exception: pass
             
-            time.sleep(2) # Poll every 2 seconds
+            time.sleep(2)
 
     #def display_new_screenshot(self, path):
         #self.current_img_path = path
@@ -965,6 +1025,66 @@ class QuakeLauncher:
             self.map_listbox.yview_moveto(map_scroll)
 
         self.root.after(400, restore_map)
+
+    def update_save_list(self, mod_path):
+        """Scans the mod directory for Quake save files (.sav)"""
+        saves = ["(None)"]
+        if os.path.exists(mod_path):
+            try:
+                # Find all .sav files and sort them (usually s0.sav, s1.sav, etc)
+                found_files = [f for f in os.listdir(mod_path) if f.lower().endswith('.sav')]
+                # Sort numerically if possible, otherwise alphabetically
+                found_files.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                saves.extend(found_files)
+            except Exception as e:
+                print(f"Error scanning saves: {e}")
+        
+        self.all_saves = saves
+        self.save_game.set("(None)")
+        
+        # Refresh the OptionMenu widget
+        menu = self.save_menu_var["menu"]
+        menu.delete(0, "end")
+        for s in self.all_saves:
+            menu.add_command(label=s, command=lambda value=s: self.save_game.set(value))
+
+
+    def archive_existing_screenshots(self, mod_path):
+        """Moves any existing loose screenshots to an 'oldscreenshots' folder."""
+        if not os.path.exists(mod_path):
+            return
+
+        old_shots_dir = os.path.join(mod_path, "oldscreenshots")
+        
+        found_any = False
+        # Use the global variable here
+        for pattern in SCREENSHOT_PATTERNS:
+            for f in os.listdir(mod_path):
+                if fnmatch.fnmatch(f.lower(), pattern):
+                    if not os.path.exists(old_shots_dir):
+                        os.makedirs(old_shots_dir)
+                    
+                    try:
+                        src = os.path.join(mod_path, f)
+                        dst = os.path.join(old_shots_dir, f)
+                        
+                        if os.path.exists(dst):
+                            timestamp = int(time.time())
+                            name, ext = os.path.splitext(f)
+                            dst = os.path.join(old_shots_dir, f"{name}_{timestamp}{ext}")
+                        
+                        shutil.move(src, dst)
+                        found_any = True
+                    except Exception as e:
+                        print(f"Error archiving {f}: {e}")
+        
+        #if found_any:
+            #print(f"Archived existing screenshots for mod at: {mod_path}")
+
+
+
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
