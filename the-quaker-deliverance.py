@@ -31,11 +31,8 @@ except ImportError:
         "sudo apt install python3-pil.imagetk")
     sys.exit(1)
 
-VERSION = "1.1.1"
-
+VERSION = "1.1.4"
 CONFIG_FILE = "quake_launcher_config.json"
-
-#SCREENSHOT_PATTERNS = ["vkquake*.png", "vkquake*.jpg", "shot00*.jpg", "shot00*.png", "shot00*.tga", "quake*.tga", "quake*.png"]
 
 # list of potential screenshot file names covering vkQuake, Ironwail, Quakespasm, DarkPlaces, and FTEQW
 SCREENSHOT_PATTERNS = [
@@ -45,7 +42,6 @@ SCREENSHOT_PATTERNS = [
     "scr*.png", "scr*.jpg",               # Some specific engine forks
     "capture*.png"                        # Kex Engine (Enhanced re-release)
 ]
-
 
 class QuakeLauncher:
     def __init__(self, root):
@@ -71,11 +67,9 @@ class QuakeLauncher:
         self.save_game = tk.StringVar(value="(None)")
         self.all_saves = ["(None)"]
        
-       
-       
         self.themes = {
             "Quake Dark": {"bg": "#111111", "fg": "#ffffff", "select": "#880000", "select_fg": "#ffffff"},
-            "Classic Brown": {"bg": "#332211", "fg": "#ffcc00", "select": "#553311", "select_fg": "#ffffff"},
+            "Quake Brown": {"bg": "#332211", "fg": "#ffcc00", "select": "#553311", "select_fg": "#ffffff"},
             "Matrix": {"bg": "#000000", "fg": "#00ff00", "select": "#004400", "select_fg": "#ffffff"},
             "High Contrast": {"bg": "#ffffff", "fg": "#000000", "select": "#0000ff", "select_fg": "#ffffff"}
         }
@@ -97,6 +91,7 @@ class QuakeLauncher:
         self.all_mods = []
         self.all_maps = []
         self.map_titles = {}
+        self.save_lookup = {"(None)": "(None)"}
 
         # Added missing original_maps to prevent is_blacklisted from crashing
         self.original_maps = ["base", "start", "exit"] 
@@ -203,33 +198,62 @@ class QuakeLauncher:
         self.skill_menu.pack(side="left")
 
         # Save Game Dropdown
+        #tk.Label(ctrl_frame, text="Load Save:").pack(side="left", padx=(15, 5))
+        #self.save_menu_var = tk.OptionMenu(ctrl_frame, self.save_game, *self.all_saves)
+        #self.save_menu_var.pack(side="left")
+
+        # Save Game Dropdown
         tk.Label(ctrl_frame, text="Load Save:").pack(side="left", padx=(15, 5))
+        self.save_game.trace_add("write", self.on_save_selected) 
         self.save_menu_var = tk.OptionMenu(ctrl_frame, self.save_game, *self.all_saves)
+        self.save_menu_var.config(width=20)
         self.save_menu_var.pack(side="left")
+        self.save_menu_var.bind("<Button-1>", self.refresh_saves_on_click)
+        
+        
+        """
+        #######zzzzzzzzzzzzz Remove me.
+        # --- ADD THE CLEAR BUTTON HERE ---
+        ## Also remove def add_tooltip if the clear X button is not wanted
+        self.clear_save_btn = tk.Button(
+            ctrl_frame, 
+            text="Clear ", 
+            command=lambda: self.save_game.set("(None)"),
+            #bg="#cc0000", 
+            #fg="white", 
+            
+            bg="#d9d9d9", 
+            fg="black", 
+            
+            font=("Arial", 12, "normal"),
+            width=2,
+            relief="groove"
+        )
+        self.clear_save_btn.pack(side="left", padx=2)
+        
+        # Attach the tooltip
+        # Uncommnet to add the tool tip back in.
+        # self.add_tooltip(self.clear_save_btn, "Clear selection (does not delete file)")
+        #######zzzzzzzzzzzzz Remove me.
+        """
+
+        # --- ADD THIS: The Map Name Display Box ---
+        tk.Label(ctrl_frame, text="Save Map:").pack(side="left", padx=(5, 2))
+        self.save_map_display = tk.Entry(ctrl_frame, width=15, state="readonly", readonlybackground="white")
+        self.save_map_display.pack(side="left", padx=5)
+
+
 
         # Extra CLI
         tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15, 5))
         tk.Entry(ctrl_frame, textvariable=self.extra_args, width=20).pack(side="left", fill="x", expand=True)
 
-
-
-
-
-
-        #tk.Label(ctrl_frame, text="Skill:").pack(side="left", padx=5)
-        #tk.OptionMenu(ctrl_frame, self.skill_level, "0", "1", "2", "3").pack(side="left")
-
-        #tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15,5))
-        #tk.Entry(ctrl_frame, textvariable=self.extra_args, width=30).pack(side="left", fill="x", expand=True)
-
-
-
-
         self.paned.add(mod_col, width=250)
         self.paned.add(map_col, width=250)
         self.paned.add(preview_col, width=500)
 
-        self.launch_btn = tk.Button(self.root, text="LAUNCH", bg="#800", fg="white", font=("Impact", 24), command=self.launch_game)
+        # self.launch_btn = tk.Button(self.root, text="LAUNCH", bg="#800", fg="white", font=("Impact", 24), command=self.launch_game)
+        self.launch_btn = tk.Button(self.root, text="LAUNCH", bg="#d9d9d9", fg="black", font=("Impact", 24), command=self.launch_game)
         self.launch_btn.pack(fill="x", padx=10, pady=10)
 
     def apply_theme_to_ui(self):
@@ -349,15 +373,11 @@ class QuakeLauncher:
         m_name = self.mod_listbox.get(sel[0])
         m_path = os.path.join(self.base_dir.get(), m_name)
         
+        self.save_game.set("(None)")
         
         self.archive_existing_screenshots(m_path)
-        
-        
         self.update_save_list(m_path)
-        
 
-        
-        
         # Clear the image cache so we don't show the old mod's image
         self.cached_image = None
         self.cached_image_path = None
@@ -374,6 +394,12 @@ class QuakeLauncher:
             self.start_new_scan(m_name, m_path)
         self.update_mod_image(m_name, m_path)
         self.extra_args.set(self.mod_extra_args.get(m_name, ""))
+        
+        self.save_game.set("(None)")
+        
+        # Clear map selection and focus ring
+        self.map_listbox.selection_clear(0, tk.END)
+        self.map_listbox.activate(0) # Moves the 'focus' line to the top or hidden
 
     def start_new_scan(self, mod_name, mod_path):
         self.map_listbox.delete(0, tk.END)
@@ -510,11 +536,15 @@ class QuakeLauncher:
 
     def on_map_select(self, event):
 
+        # 1. If the user manually clicked the Map List, clear the Save selection
+        #if event and self.root.focus_get() == self.map_listbox:
+            #self.save_game.set("(None)")
+        if event is not None:
+            self.save_game.set("(None)")
 
         # Clear cache before loading the new map preview
         self.cached_image = None
         self.cached_image_path = None
-
 
         # 1. Get the selected map name first
         sel = self.map_listbox.curselection()
@@ -660,15 +690,15 @@ class QuakeLauncher:
             messagebox.showerror("Error", "Engine executable not found!")
             return
 
-        # Get selected mod
+        # 1. Get current Mod
         sel_mod = self.mod_listbox.curselection()
         mod = self.mod_listbox.get(sel_mod[0]) if sel_mod else "id1"
 
-        # Get selected map
+        # 2. Get current Map
         sel_map = self.map_listbox.curselection()
         map_n = self.map_listbox.get(sel_map[0]) if sel_map else "(Default)"    
 
-        # Start screenshot watcher
+        # 3. Start screenshot watcher
         self.stop_screenshot_watch.clear()
         threading.Thread(
             target=self.watch_screenshots,
@@ -676,29 +706,30 @@ class QuakeLauncher:
             daemon=True
         ).start()
 
-        # 1. Base Command
+        # 4. Base Command
         cmd = [exe, "-game", mod]
 
-        # 2. DECISION LOGIC: Save vs Map vs Default
-        selected_save = self.save_game.get()
+        # 5. DECISION LOGIC: Save vs Map vs Default
+        display_selection = self.save_game.get()
         
-        if selected_save != "(None)":
-            # CASE A: Loading a Save. 
-            # We ignore +map and +skill because the save file contains both.
-            save_name = selected_save.lower().replace('.sav', '')
+        if display_selection != "(None)":
+            # CASE A: Loading a Save.
+            # Get the real filename from our lookup table (e.g., "s0.sav")
+            real_save_file = self.save_lookup.get(display_selection, "")
+            
+            # Remove .sav extension for the +load command
+            save_name = real_save_file.lower().replace('.sav', '')
             cmd.extend(["+load", save_name])
         
         elif map_n != "(Default)":
             # CASE B: Starting a fresh Map.
-            # We need +skill and +map.
             cmd.extend(["+skill", self.skill_level.get(), "+map", map_n])
         
         else:
             # CASE C: Launching to Main Menu.
-            # We only need +skill for any future games started via the menu.
             cmd.extend(["+skill", self.skill_level.get()])
 
-        # 3. Add extra CLI parameters
+        # 6. Add extra CLI parameters
         import shlex
         extra = self.mod_extra_args.get(mod, "").strip()
         if extra:
@@ -706,10 +737,8 @@ class QuakeLauncher:
 
         print("Command line:", " ".join(cmd))
 
-        # Save state before launching
+        # 7. Save state and Launch
         self.save_config()
-
-        # Launch
         subprocess.Popen(cmd, cwd=os.path.dirname(exe))
 
 
@@ -737,7 +766,7 @@ class QuakeLauncher:
                 else: subprocess.Popen(["xdg-open", p])
 
     def is_valid_map_data(self, data_chunk):
-        """Helper to check a byte chunk for playable spawn points."""
+        #Helper to check a byte chunk for playable spawn points.
         try:
             # decode with latin-1 to avoid any UnicodeDecodeErrors from binary junk
             content = data_chunk.decode('latin-1', errors='ignore')
@@ -786,7 +815,7 @@ class QuakeLauncher:
             return False
 
     def watch_screenshots(self, mod_name):
-        """Threaded worker that watches for new screenshots in the mod root."""
+        #Threaded worker that watches for new screenshots in the mod root.
         mod_path = os.path.join(self.base_dir.get(), mod_name)
         previews_path = os.path.join(mod_path, "previews")
         os.makedirs(previews_path, exist_ok=True)
@@ -817,10 +846,6 @@ class QuakeLauncher:
             
             time.sleep(2)
 
-    #def display_new_screenshot(self, path):
-        #self.current_img_path = path
-        #self.render_image(path)
-
     def display_new_screenshot(self, path):
         # Force the cache to clear so the new file is loaded from disk
         self.cached_image = None
@@ -829,10 +854,8 @@ class QuakeLauncher:
         self.current_img_path = path
         self.render_image(path)
 
-
-
     def get_map_stats(self, entity_data, skill):
-        """Counts monsters and secrets based on skill level bitmasks."""
+        #Counts monsters and secrets based on skill level bitmasks.
         # Normalize skill input
         try:
             skill = int(skill)
@@ -872,7 +895,7 @@ class QuakeLauncher:
         return monster_count, secret_count
 
     def update_map_stats_display(self, mod_path, map_name):
-        """Coordinates the search for the map and updates the UI label."""
+        #Coordinates the search for the map and updates the UI label.
         self.map_info_label.config(text="Monsters: -- | Secrets: --")
         
         entity_text = ""
@@ -899,7 +922,7 @@ class QuakeLauncher:
             self.map_info_label.config(text=f"Skill {current_skill} | Monsters: {m} | Secrets: {s}")
 
     def extract_entities_robust(self, f, offset=0):
-        """Extracts the full entity lump based on the BSP format."""
+        # Extracts the full entity lump based on the BSP format.
         try:
             import struct
             f.seek(offset)
@@ -928,7 +951,7 @@ class QuakeLauncher:
         return ""
 
     def get_entities_from_pak(self, pak_path, map_target):
-        """Finds a map inside a PAK and returns its entity string."""
+        # Finds a map inside a PAK and returns its entity string.
         try:
             import struct
             with open(pak_path, 'rb') as f:
@@ -956,7 +979,7 @@ class QuakeLauncher:
         self.save_config()
 
     def get_map_title(self, mod_name, map_name):
-        """Attempts to find the 'message' (title) of the map from its entity data."""
+        # Attempts to find the 'message' (title) of the map from its entity data.
         if map_name == "(Default)":
             return f"Mod: {mod_name}"
 
@@ -1027,30 +1050,40 @@ class QuakeLauncher:
         self.root.after(400, restore_map)
 
     def update_save_list(self, mod_path):
-        """Scans the mod directory for Quake save files (.sav)"""
+        #Finds .sav files and adds formatted timestamps to the labels
+        self.save_lookup = {"(None)": "(None)"} # Initialize lookup
         saves = ["(None)"]
+        
         if os.path.exists(mod_path):
-            try:
-                # Find all .sav files and sort them (usually s0.sav, s1.sav, etc)
-                found_files = [f for f in os.listdir(mod_path) if f.lower().endswith('.sav')]
-                # Sort numerically if possible, otherwise alphabetically
-                found_files.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                saves.extend(found_files)
-            except Exception as e:
-                print(f"Error scanning saves: {e}")
+            found_files = [f for f in os.listdir(mod_path) if f.lower().endswith('.sav')]
+            # Sort newest first
+            found_files.sort(key=lambda x: os.path.getmtime(os.path.join(mod_path, x)), reverse=True)
+
+            for f in found_files:
+                f_path = os.path.join(mod_path, f)
+                mtime = os.path.getmtime(f_path)
+                date_str = time.strftime('%Y-%m-%d', time.localtime(mtime))
+                
+                display_name = f"{f}  ({date_str})"
+                saves.append(display_name)
+                
+                # Store the mapping: Display Name -> Real Filename
+                self.save_lookup[display_name] = f
         
         self.all_saves = saves
-        self.save_game.set("(None)")
         
-        # Refresh the OptionMenu widget
+        # Refresh the OptionMenu
         menu = self.save_menu_var["menu"]
         menu.delete(0, "end")
         for s in self.all_saves:
             menu.add_command(label=s, command=lambda value=s: self.save_game.set(value))
+        
+        self.save_game.set("(None)")
+
 
 
     def archive_existing_screenshots(self, mod_path):
-        """Moves any existing loose screenshots to an 'oldscreenshots' folder."""
+        # Moves any existing loose screenshots to an 'oldscreenshots' folder.
         if not os.path.exists(mod_path):
             return
 
@@ -1078,13 +1111,159 @@ class QuakeLauncher:
                     except Exception as e:
                         print(f"Error archiving {f}: {e}")
         
-        #if found_any:
-            #print(f"Archived existing screenshots for mod at: {mod_path}")
+    def on_save_selected(self, *args):
+        """Triggered when the Save Dropdown changes"""
+        display_selection = self.save_game.get()
+        
+        if display_selection == "(None)":
+            self.save_map_display.config(state="normal")
+            self.save_map_display.delete(0, tk.END)
+            self.save_map_display.config(state="readonly")
+            return
+
+        # LOOKUP the real filename (e.g., s0.sav)
+        save_file = self.save_lookup.get(display_selection, "")
+
+        sel_mod = self.mod_listbox.curselection()
+        mod_name = self.mod_listbox.get(sel_mod[0]) if sel_mod else "id1"
+        save_path = os.path.join(self.base_dir.get(), mod_name, save_file)
+
+        if os.path.exists(save_path):
+            map_name = self.get_map_from_save(save_path)
+            
+            self.save_map_display.config(state="normal")
+            self.save_map_display.delete(0, tk.END)
+            self.save_map_display.insert(0, map_name)
+            self.save_map_display.config(state="readonly")
+
+            # Auto-select map in the listbox
+            all_visible_maps = self.map_listbox.get(0, tk.END)
+            for i, m in enumerate(all_visible_maps):
+                if m.lower() == map_name.lower():
+                    self.map_listbox.selection_clear(0, tk.END)
+                    self.map_listbox.selection_set(i)
+                    self.map_listbox.activate(i)
+                    self.map_listbox.selection_anchor(i)
+                    self.map_listbox.see(i)
+                    self.on_map_select(None)
+                    break
+
+    def get_map_from_save(self, save_path):
+        """Extracts mapname value from binary save file"""
+        try:
+            with open(save_path, "rb") as f:
+                # Read the first 16KB of the save file
+                data = f.read(16384) 
+            
+            # Search for the "mapname" key and its value
+            match = re.search(b'\"mapname\"\s+\"([^\"\x00]+)\"', data)
+            if match:
+                return match.group(1).decode('latin-1').strip()
+            return "Unknown"
+        except Exception:
+            return "Error"
+
+    def on_save_selected(self, *args):
+        #Triggered when the Save Dropdown changes
+        display_selection = self.save_game.get()
+        
+        # 1. Reset if no save is selected
+        if display_selection == "(None)":
+            self.save_map_display.config(state="normal")
+            self.save_map_display.delete(0, tk.END)
+            self.save_map_display.config(state="readonly")
+            return
+
+        # 2. Get the REAL filename from the lookup dictionary
+        save_file = self.save_lookup.get(display_selection, "")
+
+        # 3. Build the path
+        sel_mod = self.mod_listbox.curselection()
+        mod_name = self.mod_listbox.get(sel_mod[0]) if sel_mod else "id1"
+        save_path = os.path.join(self.base_dir.get(), mod_name, save_file)
+
+        if os.path.exists(save_path):
+            # Extract map name from file
+            map_name = self.get_map_from_save(save_path)
+            
+            # Update the small display box
+            self.save_map_display.config(state="normal")
+            self.save_map_display.delete(0, tk.END)
+            self.save_map_display.insert(0, map_name)
+            self.save_map_display.config(state="readonly")
+
+            # 4. AUTO-SELECT the map in the Map Listbox
+            all_visible_maps = self.map_listbox.get(0, tk.END)
+            for i, m in enumerate(all_visible_maps):
+                if m.lower() == map_name.lower():
+                    self.map_listbox.selection_clear(0, tk.END)
+                    self.map_listbox.selection_set(i)
+                    self.map_listbox.activate(i)
+                    self.map_listbox.selection_anchor(i)
+                    self.map_listbox.see(i)
+                    # Sync the preview image/info
+                    self.on_map_select(None)
+                    break
+
+    def get_map_from_save(self, save_path):
+        # Extracts mapname value from binary save file for vkQuake
+        try:
+            with open(save_path, "rb") as f:
+                data = f.read(16384) # Read header
+            
+            # Look for "mapname" "actual_map"
+            match = re.search(b'\"mapname\"\s+\"([^\"\x00]+)\"', data)
+            if match:
+                return match.group(1).decode('latin-1').strip()
+            return "Unknown"
+        except:
+            return "Error"
+
+    def refresh_saves_on_click(self, event):
+        """Refreshes the save game list when the dropdown is clicked."""
+        sel = self.mod_listbox.curselection()
+        if not sel:
+            return
+    
+        mod_name = self.mod_listbox.get(sel[0])
+        mod_path = os.path.join(self.base_dir.get(), mod_name)
+    
+        # 1. Rescan the folder for .sav files
+        self.update_save_list(mod_path)
+    
+        # 2. Clear the old menu options
+        menu = self.save_menu_var["menu"]
+        menu.delete(0, "end")
+    
+        # 3. Repopulate with the fresh list
+        for save_display_name in self.all_saves:
+            menu.add_command(
+                label=save_display_name, 
+                command=lambda value=save_display_name: self.save_game.set(value)
+            )
 
 
 
+    """
+    #######zzzzzzzzzzzzz Remove me
+    def add_tooltip(self, widget, text):
+        # Adds a hover popup to a widget
+        def show_tip(event):
+            self.tip = tk.Toplevel(self.root)
+            self.tip.wm_overrideredirect(True) # Remove window borders
+            self.tip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+            label = tk.Label(self.tip, text=text, background="#ffffdd", 
+                             relief="solid", borderwidth=1, font=("Arial", 12))
+            label.pack()
 
+        def hide_tip(event):
+            if hasattr(self, 'tip'):
+                self.tip.destroy()
 
+        widget.bind("<Enter>", show_tip)
+        widget.bind("<Leave>", hide_tip)
+        #######zzzzzzzzzzzzz Remove me
+        """
 
 if __name__ == "__main__":
     root = tk.Tk()
