@@ -7,7 +7,8 @@ Simple up and running for Debian based distros
 git clone https://github.com/yzf750/The-Quaker-Deliverance.git
 cd ./The-Quaker-Deliverance
 sudo apt update
-sudo apt install python3-tk python3-pil.imagetk
+#sudo apt install python3-tk python3-pil.imagetk
+sudo apt install python3-pil
 pip install -r requirements.txt
 cp the-quaker-deliverence.py thequake.png /path/to/your/quake/directory/
 ```
