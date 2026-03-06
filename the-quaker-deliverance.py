@@ -31,8 +31,9 @@ except ImportError:
         "sudo apt install python3-pil.imagetk")
     sys.exit(1)
 
-VERSION = "1.1.4"
-CONFIG_FILE = "quake_launcher_config.json"
+VERSION = "1.1.5"
+CONFIG_FILE = "the-quaker-deliverance.json"
+
 
 # list of potential screenshot file names covering vkQuake, Ironwail, Quakespasm, DarkPlaces, and FTEQW
 SCREENSHOT_PATTERNS = [
@@ -40,6 +41,7 @@ SCREENSHOT_PATTERNS = [
     "shot*.png", "shot*.jpg", "shot*.tga", # Ironwail, Quakespasm, vanilla
     "quake*.png", "quake*.jpg",           # DarkPlaces / FTEQW / Older ports
     "scr*.png", "scr*.jpg",               # Some specific engine forks
+    "spasm*.png", "spasm*.jpg",           # quakespasm ??
     "capture*.png"                        # Kex Engine (Enhanced re-release)
 ]
 
@@ -51,7 +53,7 @@ class QuakeLauncher:
         try:
             # Look for an icon file named 'thequaker.png' in the same folder as the script
             #icon_path = os.path.join(os.path.dirname(__file__), "thequaker.png")
-            icon_path = os.path.join(os.path.dirname(__file__), "blue.png")
+            icon_path = os.path.join(os.path.dirname(__file__), "the-quaker-deliverance-icon.png")
             if os.path.exists(icon_path):
                 img = Image.open(icon_path)
                 photo = ImageTk.PhotoImage(img)
@@ -142,9 +144,11 @@ class QuakeLauncher:
 
         tk.Label(path_frame, text="Engine:").grid(row=0, column=0, sticky="w")
         tk.Entry(path_frame, textvariable=self.exe_path).grid(row=0, column=1, padx=5, sticky="ew")
+        #tk.Button(path_frame, text="▶ Browse", command=lambda: self.browse_file("exe")).grid(row=0, column=2)
         tk.Button(path_frame, text="Browse", command=lambda: self.browse_file("exe")).grid(row=0, column=2)
         tk.Label(path_frame, text="Quake Root:").grid(row=1, column=0, sticky="w")
         tk.Entry(path_frame, textvariable=self.base_dir).grid(row=1, column=1, padx=5, sticky="ew")
+        #tk.Button(path_frame, text="▤ Browse", command=self.browse_base).grid(row=1, column=2)
         tk.Button(path_frame, text="Browse", command=self.browse_base).grid(row=1, column=2)
         
         self.settings_btn = tk.Button(path_frame, text="⚙ Settings", command=self.open_settings)
@@ -238,14 +242,14 @@ class QuakeLauncher:
         """
 
         # --- ADD THIS: The Map Name Display Box ---
-        tk.Label(ctrl_frame, text="Save Map:").pack(side="left", padx=(5, 2))
+        tk.Label(ctrl_frame, text="Map in Save:").pack(side="left", padx=(5, 2))
         self.save_map_display = tk.Entry(ctrl_frame, width=15, state="readonly", readonlybackground="white")
         self.save_map_display.pack(side="left", padx=5)
 
 
 
         # Extra CLI
-        tk.Label(ctrl_frame, text="Extra CLI:").pack(side="left", padx=(15, 5))
+        tk.Label(ctrl_frame, text="Extra CLI Args:").pack(side="left", padx=(15, 5))
         tk.Entry(ctrl_frame, textvariable=self.extra_args, width=20).pack(side="left", fill="x", expand=True)
 
         self.paned.add(mod_col, width=250)
@@ -395,7 +399,7 @@ class QuakeLauncher:
         self.update_mod_image(m_name, m_path)
         self.extra_args.set(self.mod_extra_args.get(m_name, ""))
         
-        self.save_game.set("(None)")
+        #self.save_game.set("(None)")
         
         # Clear map selection and focus ring
         self.map_listbox.selection_clear(0, tk.END)
@@ -495,7 +499,10 @@ class QuakeLauncher:
                 f.seek(off)
                 for _ in range(sz // 64):
                     ent = f.read(64)
-                    full_name = ent[:56].split(b'\0')[0].decode('ascii', errors='ignore').lower()
+                    
+                    #full_name = ent[:56].split(b'\0')[0].decode('ascii', errors='ignore').lower()
+                    # In get_maps_from_pak:
+                    full_name = ent[:56].split(b'\0')[0].decode('latin-1').strip().lower()
                     
                     if full_name.endswith('.bsp'):
                         # Ensure we aren't in a models/ folder inside the PAK
