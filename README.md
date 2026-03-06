@@ -47,6 +47,7 @@ Launch Saved Game
 
 Screenshots
 -----------
+- If you take a new screenshot your previous screensot for that map will be over written.
 - When you click a Mod Any existing screenshots for that Mod are moved to the "oldscreenshots" direcory.
 - Take a scrrenshot using your usual key (default is F12)
 - Application monitors Mod direcory for new screenshots, if you take a scrrsnhot it will be renaned to the map name you launched and moved to the "previres" direcory
