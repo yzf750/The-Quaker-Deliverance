@@ -61,7 +61,10 @@ Refresh Mods and Maps
 - "Refresh Mods List" - Will updated any Mods you have added (saves you from having to restart the app)
 
 
+
+
 Simple up and running for Debian based distros
+----------------------------------------------
 
 ```bash
 git clone https://github.com/yzf750/The-Quaker-Deliverance.git
