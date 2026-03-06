@@ -62,6 +62,37 @@ Refresh Mods and Maps
 Simple up and running for Debian based distros
 ----------------------------------------------
 
+Download using this link
+https://github.com/yzf750/The-Quaker-Deliverance/archive/refs/heads/main.zip
+
+Extract files
+
+Copy "the-quaker-deliverance.py" and "the-quaker-deliverance-icon.png" to your Quake directory.
+
+You may need to install the python pillow library.
+```bash
+sudo apt install python3-tk python3-pil.imagetk
+```
+
+In your Quake directory run 
+```bash
+python3 ./the-quaker-deliverance.py
+```
+or
+
+Make the script executable
+```bash
+chmod +x ./the-quaker-deliverance.py
+```
+Then simply run
+
+```bash
+./the-quaker-deliverance.py
+```
+
+
+
+
 ```bash
 git clone https://github.com/yzf750/The-Quaker-Deliverance.git
 cd ./The-Quaker-Deliverance
