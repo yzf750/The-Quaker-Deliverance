@@ -213,33 +213,6 @@ class QuakeLauncher:
         self.save_menu_var.config(width=20)
         self.save_menu_var.pack(side="left")
         self.save_menu_var.bind("<Button-1>", self.refresh_saves_on_click)
-        
-        
-        """
-        #######zzzzzzzzzzzzz Remove me.
-        # --- ADD THE CLEAR BUTTON HERE ---
-        ## Also remove def add_tooltip if the clear X button is not wanted
-        self.clear_save_btn = tk.Button(
-            ctrl_frame, 
-            text="Clear ", 
-            command=lambda: self.save_game.set("(None)"),
-            #bg="#cc0000", 
-            #fg="white", 
-            
-            bg="#d9d9d9", 
-            fg="black", 
-            
-            font=("Arial", 12, "normal"),
-            width=2,
-            relief="groove"
-        )
-        self.clear_save_btn.pack(side="left", padx=2)
-        
-        # Attach the tooltip
-        # Uncommnet to add the tool tip back in.
-        # self.add_tooltip(self.clear_save_btn, "Clear selection (does not delete file)")
-        #######zzzzzzzzzzzzz Remove me.
-        """
 
         # --- ADD THIS: The Map Name Display Box ---
         tk.Label(ctrl_frame, text="Map in Save:").pack(side="left", padx=(5, 2))
@@ -1249,28 +1222,6 @@ class QuakeLauncher:
                 command=lambda value=save_display_name: self.save_game.set(value)
             )
 
-
-
-    """
-    #######zzzzzzzzzzzzz Remove me
-    def add_tooltip(self, widget, text):
-        # Adds a hover popup to a widget
-        def show_tip(event):
-            self.tip = tk.Toplevel(self.root)
-            self.tip.wm_overrideredirect(True) # Remove window borders
-            self.tip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
-            label = tk.Label(self.tip, text=text, background="#ffffdd", 
-                             relief="solid", borderwidth=1, font=("Arial", 12))
-            label.pack()
-
-        def hide_tip(event):
-            if hasattr(self, 'tip'):
-                self.tip.destroy()
-
-        widget.bind("<Enter>", show_tip)
-        widget.bind("<Leave>", hide_tip)
-        #######zzzzzzzzzzzzz Remove me
-        """
 
 if __name__ == "__main__":
     root = tk.Tk()
