@@ -33,7 +33,7 @@ Launch Mod or Map
 -----------------
 - Select "Skill"
 - Add any "Extra CLI Args" such as -heapsize , -startwindowed. CLI Args are saved on a per Mod basis. 
-- Double click Mod or Map to launch.
+- Double click Mod or Map to launch. (or press "Enter")
 - Click Mod, click map, then click LAUNCH.
 
 
