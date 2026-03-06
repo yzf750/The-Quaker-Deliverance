@@ -15,7 +15,7 @@ Features
 - Supports themes
 - Uses mostly pre installed python librarires for most distros (You may need to install the python pillow library for image support)
 - Search Mods and Maps (Only maps for the selected Mod, I might add support to search all maps)
-
+- When you click a Mod a random screenshot will appear.
 
 Configuration
 -------------
