@@ -6,13 +6,13 @@ A Quake 1 launcher "Vibe Coded" in python using Google Gemini.
 Features
 --------
 - Takes "Real Time" screenshots. 
-- Launches Mods or sperate Maps.
+- Launches Mods or individual Maps.
 - Supports Saved Games.
 - Selectable Skill Levels.
 - Shows Number of monsters and secrets per map (Change skill level to see number per skill level).
-- Shows Maps full name.
+- Shows Map full name.
 - Supports themes.
-- Uses mostly preinstalled python librarires for most distros (You may need to install the python pillow library for image support).
+- Uses mostly preinstalled python libraries pre-installed from most distros (You may need to install the python pillow library for image support).
 - Search Mods and Maps (Only maps for the selected Mod, I might add support to search all maps).
 - When you click a Mod a random screenshot will appear.
 - Saves the last Mod and Map used when closing the app.
@@ -32,7 +32,7 @@ Launch Mod or Map
 -----------------
 - Select "Skill"
 - Add any "Extra CLI Args" such as -heapsize , -startwindowed. CLI Args are saved on a per Mod basis. 
-- Double click Mod or Map to launch. Click LAUNCH (or press "Enter").
+- Double click Mod or Map to launch or click LAUNCH (or press "Enter").
 
 Launch Saved Game
 -----------------
