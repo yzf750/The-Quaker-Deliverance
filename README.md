@@ -1,6 +1,12 @@
 # The Quaker Deliverance
 A Quake 1 launcher in Python, Vibe Coded using Google Gemini
 
+
+![tqd](images/the-quaker-deliverance.png)
+
+
+
+
 Simple up and running for Debian based distros
 
 ```bash
